@@ -46,6 +46,28 @@ def prepare_supabase_env():
     print("Copying .env in root to .env in supabase/docker...")
     shutil.copyfile(env_example_path, env_path)
 
+def fix_pooler_line_endings():
+    """Ensure pooler.exs has LF line endings."""
+    pooler_path = os.path.join("supabase", "docker", "volumes", "pooler", "pooler.exs")
+    if os.path.exists(pooler_path):
+        print(f"Checking line endings for {pooler_path}...")
+        try:
+            with open(pooler_path, 'rb') as f:
+                content = f.read()
+
+            if b'\r\n' in content:
+                print("Found CRLF line endings, converting to LF...")
+                content = content.replace(b'\r\n', b'\n')
+                with open(pooler_path, 'wb') as f:
+                    f.write(content)
+                print("Converted line endings to LF.")
+            else:
+                print("Line endings are already LF.")
+        except Exception as e:
+            print(f"Error fixing line endings: {e}")
+    else:
+        print(f"Warning: {pooler_path} not found.")
+
 def stop_existing_containers(profile=None):
     print("Stopping and removing existing containers for the unified project 'localai'...")
     cmd = ["docker", "compose", "-p", "localai"]
@@ -227,6 +249,7 @@ def main():
 
     clone_supabase_repo()
     prepare_supabase_env()
+    fix_pooler_line_endings()
 
     # Generate SearXNG secret key and check docker-compose.yml
     generate_searxng_secret_key()
